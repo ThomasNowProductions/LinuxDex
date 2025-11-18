@@ -10,6 +10,7 @@ class ProfileScreenBody extends StatefulWidget {
 
 class _ProfileScreenBodyState extends State<ProfileScreenBody> {
   final _usernameController = TextEditingController();
+  final _currentDistroController = TextEditingController();
 
   final List<String> linuxDistros = [
     'AlmaLinux',
@@ -55,6 +56,15 @@ class _ProfileScreenBodyState extends State<ProfileScreenBody> {
     _loadProfile();
   }
 
+  @override
+  void dispose() {
+    _currentDistroController.dispose();
+    for (final prev in _previousDistros) {
+      prev['controller']?.dispose();
+    }
+    super.dispose();
+  }
+
   Future<void> _loadProfile() async {
     final user = Supabase.instance.client.auth.currentUser;
     if (user == null) return;
@@ -95,9 +105,11 @@ class _ProfileScreenBodyState extends State<ProfileScreenBody> {
               'distro': item['distro_name'],
               'startDate': DateTime.parse(item['start_date']),
               'endDate': item['end_date'] != null ? DateTime.parse(item['end_date']) : null,
+              'controller': TextEditingController(text: item['distro_name'] ?? ''),
             });
           }
         }
+        _currentDistroController.text = _currentDistro ?? '';
       });
     } catch (e) {
       // Distro history might not exist yet
@@ -110,11 +122,13 @@ class _ProfileScreenBodyState extends State<ProfileScreenBody> {
         'distro': null,
         'startDate': null,
         'endDate': null,
+        'controller': TextEditingController(),
       });
     });
   }
 
   void _removePreviousDistro(int index) {
+    _previousDistros[index]['controller'].dispose();
     setState(() {
       _previousDistros.removeAt(index);
     });
@@ -125,7 +139,7 @@ class _ProfileScreenBodyState extends State<ProfileScreenBody> {
     if (user == null) return;
 
     // Validation
-    if (_currentDistro != null && _currentStartDate == null) {
+    if (_currentDistroController.text.trim().isNotEmpty && _currentStartDate == null) {
       setState(() {
         _errorMessage = 'Please select a start date for your current distro.';
       });
@@ -133,7 +147,7 @@ class _ProfileScreenBodyState extends State<ProfileScreenBody> {
     }
 
     for (final prev in _previousDistros) {
-      if (prev['distro'] != null) {
+      if (prev['controller'].text.trim().isNotEmpty) {
         if (prev['startDate'] == null || prev['endDate'] == null) {
           setState(() {
             _errorMessage = 'Please provide both start and end dates for previous distros.';
@@ -166,10 +180,11 @@ class _ProfileScreenBodyState extends State<ProfileScreenBody> {
       final inserts = <Map<String, dynamic>>[];
 
       // Current distro
-      if (_currentDistro != null && _currentStartDate != null) {
+      final currentDistroName = _currentDistroController.text.trim();
+      if (currentDistroName.isNotEmpty && _currentStartDate != null) {
         inserts.add({
           'user_id': user.id,
-          'distro_name': _currentDistro,
+          'distro_name': currentDistroName,
           'start_date': _currentStartDate!.toIso8601String().split('T')[0],
           'end_date': null,
           'current_flag': true,
@@ -178,10 +193,11 @@ class _ProfileScreenBodyState extends State<ProfileScreenBody> {
 
       // Previous distros
       for (final prev in _previousDistros) {
-        if (prev['distro'] != null && prev['startDate'] != null && prev['endDate'] != null) {
+        final distroName = prev['controller'].text.trim();
+        if (distroName.isNotEmpty && prev['startDate'] != null && prev['endDate'] != null) {
           inserts.add({
             'user_id': user.id,
-            'distro_name': prev['distro'],
+            'distro_name': distroName,
             'start_date': prev['startDate'].toIso8601String().split('T')[0],
             'end_date': prev['endDate'].toIso8601String().split('T')[0],
             'current_flag': false,
@@ -289,18 +305,16 @@ class _ProfileScreenBodyState extends State<ProfileScreenBody> {
                       children: [
                         const Icon(Icons.computer, color: Colors.green),
                         const SizedBox(width: 8),
-                        Text('Current Ubuntu Distribution', style: Theme.of(context).textTheme.titleLarge),
+                        Text('Current Linux Distribution', style: Theme.of(context).textTheme.titleLarge),
                       ],
                     ),
                     const SizedBox(height: 16),
-                    DropdownButtonFormField<String>(
-                      initialValue: _currentDistro,
+                    TextFormField(
+                      controller: _currentDistroController,
                       decoration: const InputDecoration(
-                        labelText: 'Select current distro',
+                        labelText: 'Enter current distro',
                         prefixIcon: Icon(Icons.laptop),
                       ),
-                      items: linuxDistros.map((distro) => DropdownMenuItem(value: distro, child: Text(distro))).toList(),
-                      onChanged: (value) => setState(() => _currentDistro = value),
                     ),
                     const SizedBox(height: 16),
                     InkWell(
@@ -354,14 +368,12 @@ class _ProfileScreenBodyState extends State<ProfileScreenBody> {
                           padding: const EdgeInsets.all(12.0),
                           child: Column(
                             children: [
-                              DropdownButtonFormField<String>(
-                                initialValue: prev['distro'],
+                              TextFormField(
+                                controller: prev['controller'],
                                 decoration: const InputDecoration(
                                   labelText: 'Distro',
                                   prefixIcon: Icon(Icons.laptop),
                                 ),
-                                items: linuxDistros.map((distro) => DropdownMenuItem(value: distro, child: Text(distro))).toList(),
-                                onChanged: (value) => setState(() => _previousDistros[index]['distro'] = value),
                               ),
                               const SizedBox(height: 12),
                               Row(
