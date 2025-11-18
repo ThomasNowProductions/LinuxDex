@@ -62,7 +62,7 @@ class _AuthScreenBodyState extends State<AuthScreenBody> {
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
         child: Card(
-          elevation: 8,
+          color: Colors.black,
           child: Padding(
             padding: const EdgeInsets.all(24.0),
             child: Column(
@@ -83,7 +83,7 @@ class _AuthScreenBodyState extends State<AuthScreenBody> {
                 Text(
                   'Track your Ubuntu journey',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.grey[600],
+                    color: Colors.grey[300],
                   ),
                   textAlign: TextAlign.center,
                 ),

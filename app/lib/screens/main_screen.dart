@@ -23,24 +23,29 @@ class _MainScreenState extends State<MainScreen> {
         return DefaultTabController(
           length: 2,
           child: Scaffold(
-            body: Column(
+            backgroundColor: Colors.black,
+            appBar: AppBar(
+              backgroundColor: Colors.black,
+              title: const Text(
+                'LinuxDex Terminal',
+                style: TextStyle(color: Colors.green, fontFamily: 'Courier New'),
+              ),
+              bottom: const TabBar(
+                indicatorColor: Colors.green,
+                labelColor: Colors.green,
+                unselectedLabelColor: Colors.grey,
+                tabs: [
+                  Tab(text: 'View Profiles'),
+                  Tab(text: 'My Profile'),
+                ],
+              ),
+            ),
+            body: TabBarView(
               children: [
-                const TabBar(
-                  tabs: [
-                    Tab(text: 'View Profiles'),
-                    Tab(text: 'My Profile'),
-                  ],
-                ),
-                Expanded(
-                  child: TabBarView(
-                    children: [
-                      const ProfileViewerBody(),
-                      isLoggedIn
-                          ? const ProfileScreenBody()
-                          : const AuthScreenBody(),
-                    ],
-                  ),
-                ),
+                const ProfileViewerBody(),
+                isLoggedIn
+                    ? const ProfileScreenBody()
+                    : const AuthScreenBody(),
               ],
             ),
           ),

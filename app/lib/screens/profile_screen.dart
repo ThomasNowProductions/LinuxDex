@@ -227,6 +227,7 @@ class _ProfileScreenBodyState extends State<ProfileScreenBody> {
                 ],
               ),
             Card(
+              color: Colors.black,
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
@@ -252,6 +253,7 @@ class _ProfileScreenBodyState extends State<ProfileScreenBody> {
             ),
             const SizedBox(height: 24),
             Card(
+              color: Colors.black,
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
@@ -279,6 +281,7 @@ class _ProfileScreenBodyState extends State<ProfileScreenBody> {
             ),
             const SizedBox(height: 24),
             Card(
+              color: Colors.black,
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
@@ -330,6 +333,7 @@ class _ProfileScreenBodyState extends State<ProfileScreenBody> {
             ),
             const SizedBox(height: 24),
             Card(
+              color: Colors.black,
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
@@ -347,8 +351,7 @@ class _ProfileScreenBodyState extends State<ProfileScreenBody> {
                       final index = entry.key;
                       final prev = entry.value;
                       return Card(
-                        elevation: 2,
-                        margin: const EdgeInsets.only(bottom: 12),
+                        color: Colors.black,
                         child: Padding(
                           padding: const EdgeInsets.all(12.0),
                           child: Column(

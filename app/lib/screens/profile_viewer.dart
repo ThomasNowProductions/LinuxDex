@@ -66,7 +66,7 @@ class _ProfileViewerBodyState extends State<ProfileViewerBody> {
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
         child: Card(
-          elevation: 8,
+          color: Colors.black,
           child: Padding(
             padding: const EdgeInsets.all(24.0),
             child: Column(
@@ -143,9 +143,7 @@ class _ProfileViewerBodyState extends State<ProfileViewerBody> {
                                 duration: const Duration(milliseconds: 300),
                                 curve: Curves.easeInOut,
                                 child: Card(
-                                  elevation: 2,
-                                  margin: const EdgeInsets.only(bottom: 12),
-                                  color: isCurrent ? Colors.green[50] : null,
+                                  color: Colors.black,
                                   child: ListTile(
                                     leading: Icon(
                                       Icons.laptop,
