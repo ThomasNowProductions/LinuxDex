@@ -1,0 +1,27 @@
+# Flutter
+.flutter-plugins
+.flutter-plugins-dependencies
+build/
+.dart_tool/
+.packages
+pubspec.lock
+
+# Environment variables
+.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.temp
