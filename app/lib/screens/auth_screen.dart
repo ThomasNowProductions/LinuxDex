@@ -59,36 +59,101 @@ class _AuthScreenState extends State<AuthScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('LinuxDex Auth')),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            TextField(
-              controller: _emailController,
-              decoration: const InputDecoration(labelText: 'Email'),
-              keyboardType: TextInputType.emailAddress,
-            ),
-            TextField(
-              controller: _passwordController,
-              decoration: const InputDecoration(labelText: 'Password'),
-              obscureText: true,
-            ),
-            if (_errorMessage != null)
-              Text(_errorMessage!, style: const TextStyle(color: Colors.red)),
-            const SizedBox(height: 20),
-            if (_isLoading)
-              const CircularProgressIndicator()
-            else
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      appBar: AppBar(title: const Text('LinuxDex')),
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24.0),
+          child: Card(
+            elevation: 8,
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  ElevatedButton(onPressed: _signIn, child: const Text('Sign In')),
-                  ElevatedButton(onPressed: _signUp, child: const Text('Sign Up')),
+                  const Icon(
+                    Icons.computer,
+                    size: 64,
+                    color: Color(0xFFE95420),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Welcome to LinuxDex',
+                    style: Theme.of(context).textTheme.headlineSmall,
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Track your Ubuntu journey',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Colors.grey[600],
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 32),
+                  TextField(
+                    controller: _emailController,
+                    decoration: const InputDecoration(
+                      labelText: 'Email',
+                      prefixIcon: Icon(Icons.email),
+                    ),
+                    keyboardType: TextInputType.emailAddress,
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: _passwordController,
+                    decoration: const InputDecoration(
+                      labelText: 'Password',
+                      prefixIcon: Icon(Icons.lock),
+                    ),
+                    obscureText: true,
+                  ),
+                  const SizedBox(height: 16),
+                  if (_errorMessage != null)
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.red[50],
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        _errorMessage!,
+                        style: const TextStyle(color: Colors.red),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  const SizedBox(height: 24),
+                  if (_isLoading)
+                    const CircularProgressIndicator()
+                  else
+                    Column(
+                      children: [
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: _signIn,
+                            icon: const Icon(Icons.login),
+                            label: const Text('Sign In'),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton.icon(
+                            onPressed: _signUp,
+                            icon: const Icon(Icons.person_add),
+                            label: const Text('Sign Up'),
+                            style: OutlinedButton.styleFrom(
+                              side: const BorderSide(color: Color(0xFFE95420)),
+                              foregroundColor: const Color(0xFFE95420),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                 ],
               ),
-          ],
+            ),
+          ),
         ),
       ),
     );
