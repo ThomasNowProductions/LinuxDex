@@ -1,5 +1,0 @@
-{
-  "buildCommand": "cd ../app && flutter build web && cp -r build/web/* ../website/",
-  "outputDirectory": ".",
-  "framework": null
-}

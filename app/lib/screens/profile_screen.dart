@@ -163,6 +163,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
         title: const Text('Profile'),
         actions: [
           IconButton(
+            icon: const Icon(Icons.save),
+            onPressed: _isLoading ? null : _saveProfile,
+          ),
+          IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () => Supabase.instance.client.auth.signOut(),
           ),
