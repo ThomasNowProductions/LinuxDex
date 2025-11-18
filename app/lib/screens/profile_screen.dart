@@ -76,6 +76,35 @@ class _ProfileScreenState extends State<ProfileScreen> {
     } catch (e) {
       // Profile might not exist yet, that's fine
     }
+
+    // Load distro history
+    try {
+      final distroResponse = await Supabase.instance.client
+        .from('distro_history')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('start_date', ascending: false);
+
+      setState(() {
+        _currentDistro = null;
+        _currentStartDate = null;
+        _previousDistros = [];
+        for (final item in distroResponse) {
+          if (item['current_flag'] == true) {
+            _currentDistro = item['distro_name'];
+            _currentStartDate = DateTime.parse(item['start_date']);
+          } else {
+            _previousDistros.add({
+              'distro': item['distro_name'],
+              'startDate': DateTime.parse(item['start_date']),
+              'endDate': item['end_date'] != null ? DateTime.parse(item['end_date']) : null,
+            });
+          }
+        }
+      });
+    } catch (e) {
+      // Distro history might not exist yet
+    }
   }
 
   void _addPreviousDistro() {
@@ -134,6 +163,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
         .from('profiles')
         .upsert({'id': user.id, 'username': _usernameController.text.trim(), 'public_profile': _publicProfile});
 
+      // Delete existing distro history
+      await Supabase.instance.client.from('distro_history').delete().eq('user_id', user.id);
+
       final inserts = <Map<String, dynamic>>[];
 
       // Current distro
@@ -161,7 +193,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       }
 
       if (inserts.isNotEmpty) {
-        await Supabase.instance.client.from('distro_history').upsert(inserts, onConflict: 'user_id,distro_name,start_date');
+        await Supabase.instance.client.from('distro_history').insert(inserts);
       }
 
       // Navigate to view or something, but for now, show success
