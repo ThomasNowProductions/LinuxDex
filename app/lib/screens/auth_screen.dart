@@ -71,7 +71,7 @@ class _AuthScreenBodyState extends State<AuthScreenBody> {
                 const Icon(
                   Icons.computer,
                   size: 64,
-                  color: Color(0xFFE95420),
+                  color: Colors.green,
                 ),
                 const SizedBox(height: 16),
                 Text(
@@ -110,8 +110,8 @@ class _AuthScreenBodyState extends State<AuthScreenBody> {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: Colors.red[50],
-                      borderRadius: BorderRadius.circular(8),
+                      color: Colors.red.withOpacity(0.1),
+                      borderRadius: BorderRadius.zero,
                     ),
                     child: Text(
                       _errorMessage!,
@@ -141,8 +141,8 @@ class _AuthScreenBodyState extends State<AuthScreenBody> {
                           icon: const Icon(Icons.person_add),
                           label: const Text('Sign Up'),
                           style: OutlinedButton.styleFrom(
-                            side: const BorderSide(color: Color(0xFFE95420)),
-                            foregroundColor: const Color(0xFFE95420),
+                            side: const BorderSide(color: Colors.green),
+                            foregroundColor: Colors.green,
                           ),
                         ),
                       ),

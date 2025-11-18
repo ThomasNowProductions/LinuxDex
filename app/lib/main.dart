@@ -23,43 +23,45 @@ class MyApp extends StatelessWidget {
       title: 'LinuxDex',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFFE95420), // Ubuntu orange
-          brightness: Brightness.light,
+          seedColor: Colors.green.shade400, // Terminal green
+          brightness: Brightness.dark,
         ),
         useMaterial3: true,
+        fontFamily: 'Courier New',
         appBarTheme: const AppBarTheme(
-          backgroundColor: Color(0xFFE95420),
-          foregroundColor: Colors.white,
-          elevation: 4,
+          backgroundColor: Colors.black,
+          foregroundColor: Colors.green,
+          elevation: 0,
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFFE95420),
-            foregroundColor: Colors.white,
+            backgroundColor: Colors.green.shade400,
+            foregroundColor: Colors.black,
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.zero,
             ),
           ),
         ),
         inputDecorationTheme: InputDecorationTheme(
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.zero,
           ),
           focusedBorder: OutlineInputBorder(
-            borderSide: const BorderSide(color: Color(0xFFE95420), width: 2),
-            borderRadius: BorderRadius.circular(8),
+            borderSide: BorderSide(color: Colors.green.shade400, width: 2),
+            borderRadius: BorderRadius.zero,
           ),
         ),
         cardTheme: CardThemeData(
-          elevation: 4,
+          elevation: 0,
+          color: Colors.black,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.zero,
           ),
         ),
         textTheme: const TextTheme(
-          headlineSmall: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
-          titleLarge: TextStyle(fontWeight: FontWeight.w600, fontSize: 18),
+          headlineSmall: TextStyle(fontWeight: FontWeight.bold, fontSize: 20, fontFamily: 'Courier New'),
+          titleLarge: TextStyle(fontWeight: FontWeight.w600, fontSize: 18, fontFamily: 'Courier New'),
         ),
       ),
       home: const AuthWrapper(),

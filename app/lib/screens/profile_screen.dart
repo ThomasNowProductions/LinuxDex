@@ -234,7 +234,7 @@ class _ProfileScreenBodyState extends State<ProfileScreenBody> {
                   children: [
                     Row(
                       children: [
-                        const Icon(Icons.settings, color: Color(0xFFE95420)),
+                        const Icon(Icons.settings, color: Colors.green),
                         const SizedBox(width: 8),
                         Text('Profile Settings', style: Theme.of(context).textTheme.titleLarge),
                       ],
@@ -259,7 +259,7 @@ class _ProfileScreenBodyState extends State<ProfileScreenBody> {
                   children: [
                     Row(
                       children: [
-                        const Icon(Icons.person, color: Color(0xFFE95420)),
+                        const Icon(Icons.person, color: Colors.green),
                         const SizedBox(width: 8),
                         Text('Username', style: Theme.of(context).textTheme.titleLarge),
                       ],
@@ -286,7 +286,7 @@ class _ProfileScreenBodyState extends State<ProfileScreenBody> {
                   children: [
                     Row(
                       children: [
-                        const Icon(Icons.computer, color: Color(0xFFE95420)),
+                        const Icon(Icons.computer, color: Colors.green),
                         const SizedBox(width: 8),
                         Text('Current Ubuntu Distribution', style: Theme.of(context).textTheme.titleLarge),
                       ],
@@ -337,7 +337,7 @@ class _ProfileScreenBodyState extends State<ProfileScreenBody> {
                   children: [
                     Row(
                       children: [
-                        const Icon(Icons.history, color: Color(0xFFE95420)),
+                        const Icon(Icons.history, color: Colors.green),
                         const SizedBox(width: 8),
                         Text('Previous Distributions', style: Theme.of(context).textTheme.titleLarge),
                       ],
@@ -433,8 +433,8 @@ class _ProfileScreenBodyState extends State<ProfileScreenBody> {
                         icon: const Icon(Icons.add),
                         label: const Text('Add Previous Distro'),
                         style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: Color(0xFFE95420)),
-                          foregroundColor: const Color(0xFFE95420),
+                          side: const BorderSide(color: Colors.green),
+                          foregroundColor: Colors.green,
                         ),
                       ),
                     ),
@@ -447,8 +447,8 @@ class _ProfileScreenBodyState extends State<ProfileScreenBody> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.red[50],
-                  borderRadius: BorderRadius.circular(8),
+                  color: Colors.red.withOpacity(0.1),
+                  borderRadius: BorderRadius.zero,
                 ),
                 child: Text(
                   _errorMessage!,

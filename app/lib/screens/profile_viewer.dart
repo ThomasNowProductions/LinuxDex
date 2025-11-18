@@ -75,7 +75,7 @@ class _ProfileViewerBodyState extends State<ProfileViewerBody> {
                 const Icon(
                   Icons.search,
                   size: 64,
-                  color: Color(0xFFE95420),
+                  color: Colors.green,
                 ),
                 const SizedBox(height: 16),
                 Text(
@@ -87,7 +87,7 @@ class _ProfileViewerBodyState extends State<ProfileViewerBody> {
                 Text(
                   'Enter username to view distro history',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.grey[600],
+                    color: Colors.grey[300],
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -104,8 +104,8 @@ class _ProfileViewerBodyState extends State<ProfileViewerBody> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.red[50],
-                      borderRadius: BorderRadius.circular(8),
+                      color: Colors.red.withOpacity(0.1),
+                      borderRadius: BorderRadius.zero,
                     ),
                     child: Text(
                       _errorMessage!,
@@ -149,7 +149,7 @@ class _ProfileViewerBodyState extends State<ProfileViewerBody> {
                                   child: ListTile(
                                     leading: Icon(
                                       Icons.laptop,
-                                      color: isCurrent ? Colors.green : const Color(0xFFE95420),
+                                      color: Colors.green,
                                     ),
                                     title: Text(
                                       item['distro_name'],
