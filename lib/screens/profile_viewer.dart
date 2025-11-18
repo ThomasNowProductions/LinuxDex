@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 class ProfileViewerBody extends StatefulWidget {
   const ProfileViewerBody({super.key});
@@ -58,6 +59,17 @@ class _ProfileViewerBodyState extends State<ProfileViewerBody> {
         _isLoading = false;
       });
     }
+  }
+
+  IconData _getDistroIcon(String distroName) {
+    final name = distroName.toLowerCase();
+    if (name.contains('ubuntu')) return FontAwesomeIcons.ubuntu;
+    if (name.contains('fedora')) return FontAwesomeIcons.fedora;
+    if (name.contains('centos')) return FontAwesomeIcons.centos;
+    if (name.contains('red hat') || name.contains('rhel')) return FontAwesomeIcons.redhat;
+    if (name.contains('opensuse') || name.contains('suse')) return FontAwesomeIcons.suse;
+    // Default icon for others
+    return FontAwesomeIcons.linux;
   }
 
   @override
@@ -146,7 +158,7 @@ class _ProfileViewerBodyState extends State<ProfileViewerBody> {
                                   color: Colors.black,
                                   child: ListTile(
                                     leading: Icon(
-                                      Icons.laptop,
+                                      _getDistroIcon(item['distro_name']),
                                       color: Colors.green,
                                     ),
                                     title: Text(
