@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'profile_viewer.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -9,6 +10,8 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
+  final _usernameController = TextEditingController();
+
   final List<String> linuxDistros = [
     'AlmaLinux',
     'Alpine Linux',
@@ -60,12 +63,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     try {
       final response = await Supabase.instance.client
         .from('profiles')
-        .select('public_profile')
+        .select('username, public_profile')
         .eq('id', user.id)
         .single();
 
       if (response != null) {
         setState(() {
+          _usernameController.text = response['username'] ?? '';
           _publicProfile = response['public_profile'] ?? false;
         });
       }
@@ -128,7 +132,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       // Save profile settings
       await Supabase.instance.client
         .from('profiles')
-        .upsert({'id': user.id, 'public_profile': _publicProfile});
+        .upsert({'id': user.id, 'username': _usernameController.text.trim(), 'public_profile': _publicProfile});
 
       final inserts = <Map<String, dynamic>>[];
 
@@ -180,6 +184,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
         title: const Text('Profile'),
         actions: [
           IconButton(
+            icon: const Icon(Icons.search),
+            tooltip: 'View Other Profiles',
+            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ProfileViewer())),
+          ),
+          IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () => Supabase.instance.client.auth.signOut(),
           ),
@@ -210,6 +219,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         subtitle: const Text('Allow others to view your distro history'),
                         value: _publicProfile,
                         onChanged: (value) => setState(() => _publicProfile = value),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.person, color: Color(0xFFE95420)),
+                          const SizedBox(width: 8),
+                          Text('Username', style: Theme.of(context).textTheme.titleLarge),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: _usernameController,
+                        decoration: const InputDecoration(
+                          labelText: 'Choose a unique username',
+                          prefixIcon: Icon(Icons.account_circle),
+                          helperText: 'This will be used for others to find your profile',
+                        ),
                       ),
                     ],
                   ),

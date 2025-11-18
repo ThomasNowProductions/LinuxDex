@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ProfileViewer extends StatefulWidget {
   const ProfileViewer({super.key});
@@ -10,13 +9,13 @@ class ProfileViewer extends StatefulWidget {
 }
 
 class _ProfileViewerState extends State<ProfileViewer> {
-  final _usernameController = TextEditingController();
+  final _searchController = TextEditingController();
   List<Map<String, dynamic>> _history = [];
   bool _isLoading = false;
   String? _errorMessage;
 
   Future<void> _loadProfile() async {
-    final username = _usernameController.text.trim();
+    final username = _searchController.text.trim();
     if (username.isEmpty) {
       setState(() {
         _errorMessage = 'Please enter a username';
@@ -30,21 +29,29 @@ class _ProfileViewerState extends State<ProfileViewer> {
     });
 
     try {
-      final response = await http.get(Uri.parse('/api/$username'));
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        setState(() {
-          _history = List<Map<String, dynamic>>.from(data);
-        });
-      } else {
-        final error = jsonDecode(response.body);
-        setState(() {
-          _errorMessage = error['error'] ?? 'Failed to load profile';
-        });
-      }
+      // First, find the user by username
+      final profileResponse = await Supabase.instance.client
+        .from('profiles')
+        .select('id')
+        .eq('username', username)
+        .eq('public_profile', true)
+        .single();
+
+      final userId = profileResponse['id'];
+
+      // Then, get their distro history
+      final historyResponse = await Supabase.instance.client
+        .from('distro_history')
+        .select('distro_name, start_date, end_date, current_flag')
+        .eq('user_id', userId)
+        .order('start_date');
+
+      setState(() {
+        _history = List<Map<String, dynamic>>.from(historyResponse);
+      });
     } catch (e) {
       setState(() {
-        _errorMessage = 'Network error. Please try again.';
+        _errorMessage = 'Failed to load profile. Please try again.';
       });
     } finally {
       setState(() {
@@ -80,7 +87,7 @@ class _ProfileViewerState extends State<ProfileViewer> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Enter email to view distro history',
+                    'Enter username to view distro history',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: Colors.grey[600],
                     ),
@@ -88,12 +95,11 @@ class _ProfileViewerState extends State<ProfileViewer> {
                   ),
                   const SizedBox(height: 32),
                   TextField(
-                    controller: _usernameController,
+                    controller: _searchController,
                     decoration: const InputDecoration(
-                      labelText: 'Email Address',
-                      prefixIcon: Icon(Icons.email),
+                      labelText: 'Username',
+                      prefixIcon: Icon(Icons.account_circle),
                     ),
-                    keyboardType: TextInputType.emailAddress,
                   ),
                   const SizedBox(height: 24),
                   if (_errorMessage != null)

@@ -4,6 +4,7 @@
 -- Create the profiles table
 CREATE TABLE IF NOT EXISTS public.profiles (
     id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
+    username TEXT UNIQUE,
     public_profile BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
@@ -55,6 +56,10 @@ CREATE POLICY "Users can update their own distro history" ON public.distro_histo
 -- Users can delete their own distro history
 CREATE POLICY "Users can delete their own distro history" ON public.distro_history
     FOR DELETE USING (auth.uid() = user_id);
+
+-- Public can view distro history for public profiles
+CREATE POLICY "Public can view public distro history" ON public.distro_history
+    FOR SELECT USING (EXISTS (SELECT 1 FROM profiles WHERE id = distro_history.user_id AND public_profile = true));
 
 -- Create unique constraint to prevent duplicates
 ALTER TABLE public.distro_history ADD CONSTRAINT unique_user_distro_start UNIQUE (user_id, distro_name, start_date);
