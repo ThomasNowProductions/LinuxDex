@@ -66,13 +66,11 @@ class _ProfileScreenBodyState extends State<ProfileScreenBody> {
         .eq('id', user.id)
         .single();
 
-      if (response != null) {
-        setState(() {
-          _usernameController.text = response['username'] ?? '';
-          _publicProfile = response['public_profile'] ?? false;
-        });
-      }
-    } catch (e) {
+      setState(() {
+        _usernameController.text = response['username'] ?? '';
+        _publicProfile = response['public_profile'] ?? false;
+      });
+        } catch (e) {
       // Profile might not exist yet, that's fine
     }
 
@@ -296,7 +294,7 @@ class _ProfileScreenBodyState extends State<ProfileScreenBody> {
                     ),
                     const SizedBox(height: 16),
                     DropdownButtonFormField<String>(
-                      value: _currentDistro,
+                      initialValue: _currentDistro,
                       decoration: const InputDecoration(
                         labelText: 'Select current distro',
                         prefixIcon: Icon(Icons.laptop),
@@ -323,7 +321,7 @@ class _ProfileScreenBodyState extends State<ProfileScreenBody> {
                         child: Text(
                           _currentStartDate == null
                               ? 'Select start date'
-                              : '${_currentStartDate!.toLocal().toString().split(' ')[0]}',
+                              : _currentStartDate!.toLocal().toString().split(' ')[0],
                         ),
                       ),
                     ),
@@ -357,7 +355,7 @@ class _ProfileScreenBodyState extends State<ProfileScreenBody> {
                           child: Column(
                             children: [
                               DropdownButtonFormField<String>(
-                                value: prev['distro'],
+                                initialValue: prev['distro'],
                                 decoration: const InputDecoration(
                                   labelText: 'Distro',
                                   prefixIcon: Icon(Icons.laptop),
@@ -387,7 +385,7 @@ class _ProfileScreenBodyState extends State<ProfileScreenBody> {
                                         child: Text(
                                           prev['startDate'] == null
                                               ? 'Select'
-                                              : '${prev['startDate'].toLocal().toString().split(' ')[0]}',
+                                              : prev['startDate'].toLocal().toString().split(' ')[0],
                                         ),
                                       ),
                                     ),
@@ -412,7 +410,7 @@ class _ProfileScreenBodyState extends State<ProfileScreenBody> {
                                         child: Text(
                                           prev['endDate'] == null
                                               ? 'Select'
-                                              : '${prev['endDate'].toLocal().toString().split(' ')[0]}',
+                                              : prev['endDate'].toLocal().toString().split(' ')[0],
                                         ),
                                       ),
                                     ),
