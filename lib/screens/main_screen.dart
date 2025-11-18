@@ -24,28 +24,27 @@ class _MainScreenState extends State<MainScreen> {
           length: 2,
           child: Scaffold(
             backgroundColor: Colors.black,
-            appBar: AppBar(
-              backgroundColor: Colors.black,
-              title: const Text(
-                'LinuxDex Terminal',
-                style: TextStyle(color: Colors.green, fontFamily: 'Courier New'),
-              ),
-              bottom: const TabBar(
-                indicatorColor: Colors.green,
-                labelColor: Colors.green,
-                unselectedLabelColor: Colors.grey,
-                tabs: [
-                  Tab(text: 'View Profiles'),
-                  Tab(text: 'My Profile'),
-                ],
-              ),
-            ),
-            body: TabBarView(
+            body: Column(
               children: [
-                const ProfileViewerBody(),
-                isLoggedIn
-                    ? const ProfileScreenBody()
-                    : const AuthScreenBody(),
+                const TabBar(
+                  indicatorColor: Colors.green,
+                  labelColor: Colors.green,
+                  unselectedLabelColor: Colors.grey,
+                  tabs: [
+                    Tab(text: 'View Profiles'),
+                    Tab(text: 'My Profile'),
+                  ],
+                ),
+                Expanded(
+                  child: TabBarView(
+                    children: [
+                      const ProfileViewerBody(),
+                      isLoggedIn
+                          ? const ProfileScreenBody()
+                          : const AuthScreenBody(),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
