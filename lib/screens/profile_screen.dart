@@ -134,6 +134,33 @@ class _ProfileScreenBodyState extends State<ProfileScreenBody> {
     });
   }
 
+  void _switchDistro() {
+    final newDistro = _currentDistroController.text.trim();
+    if (newDistro.isEmpty) {
+      setState(() {
+        _errorMessage = 'Please enter a distro name to switch to.';
+      });
+      return;
+    }
+
+    setState(() {
+      _errorMessage = null;
+      // If there's a current distro, move it to history
+      if (_currentDistro != null && _currentStartDate != null) {
+        _previousDistros.add({
+          'distro': _currentDistro,
+          'startDate': _currentStartDate,
+          'endDate': DateTime.now(),
+          'controller': TextEditingController(text: _currentDistro),
+        });
+      }
+      // Set new current distro
+      _currentDistro = newDistro;
+      _currentStartDate = DateTime.now();
+      _currentDistroController.text = newDistro;
+    });
+  }
+
   Future<void> _saveProfile() async {
     final user = Supabase.instance.client.auth.currentUser;
     if (user == null) return;
@@ -337,6 +364,15 @@ class _ProfileScreenBodyState extends State<ProfileScreenBody> {
                               ? 'Select start date'
                               : _currentStartDate!.toLocal().toString().split(' ')[0],
                         ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: _switchDistro,
+                        icon: const Icon(Icons.swap_horiz),
+                        label: const Text('Switch to This Distro'),
                       ),
                     ),
                   ],
