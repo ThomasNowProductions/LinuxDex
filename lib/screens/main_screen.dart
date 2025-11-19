@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'auth_screen.dart';
 import 'profile_screen.dart';
 import 'profile_viewer.dart';
+import 'statistics_screen.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -21,7 +22,7 @@ class _MainScreenState extends State<MainScreen> {
         final isLoggedIn = session != null;
 
         return DefaultTabController(
-          length: 2,
+          length: 3,
           child: Scaffold(
             backgroundColor: Colors.black,
             body: Column(
@@ -31,6 +32,7 @@ class _MainScreenState extends State<MainScreen> {
                   labelColor: Colors.green,
                   unselectedLabelColor: Colors.grey,
                   tabs: [
+                    Tab(text: 'Statistics'),
                     Tab(text: 'View Profiles'),
                     Tab(text: 'My Profile'),
                   ],
@@ -38,6 +40,7 @@ class _MainScreenState extends State<MainScreen> {
                 Expanded(
                   child: TabBarView(
                     children: [
+                      const StatisticsBody(),
                       const ProfileViewerBody(),
                       isLoggedIn
                           ? const ProfileScreenBody()

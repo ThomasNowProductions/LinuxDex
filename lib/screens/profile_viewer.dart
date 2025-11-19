@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:share_plus/share_plus.dart';
 
 class ProfileViewerBody extends StatefulWidget {
   const ProfileViewerBody({super.key});
@@ -177,6 +178,19 @@ class _ProfileViewerBodyState extends State<ProfileViewerBody> {
                                 ),
                               );
                             }),
+                            const SizedBox(height: 24),
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton.icon(
+                                onPressed: () async {
+                                  final username = _searchController.text.trim();
+                                  final shareText = 'Check out $username\'s Linux distro journey on LinuxDex! Username: $username';
+                                  await Share.share(shareText);
+                                },
+                                icon: const Icon(Icons.share),
+                                label: const Text('Share Profile'),
+                              ),
+                            ),
                           ],
                         )
                       : const SizedBox.shrink(),

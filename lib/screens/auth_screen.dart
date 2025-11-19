@@ -26,7 +26,7 @@ class _AuthScreenBodyState extends State<AuthScreenBody> {
       );
     } catch (e) {
       setState(() {
-        _errorMessage = 'Sign up failed. Please try again.';
+        _errorMessage = 'Sign in failed. Please check your credentials.';
       });
     } finally {
       setState(() {
@@ -47,7 +47,7 @@ class _AuthScreenBodyState extends State<AuthScreenBody> {
       );
     } catch (e) {
       setState(() {
-        _errorMessage = 'Sign in failed. Please check your credentials.';
+        _errorMessage = 'Sign up failed. Please try again.';
       });
     } finally {
       setState(() {

@@ -1,5 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'dart:convert';
+import 'package:share_plus/share_plus.dart';
+import 'package:path_provider/path_provider.dart';
+import 'dart:io';
+import 'package:universal_html/html.dart' as html;
+import 'package:flutter/foundation.dart';
 
 class ProfileScreenBody extends StatefulWidget {
   const ProfileScreenBody({super.key});
@@ -196,10 +202,27 @@ class _ProfileScreenBodyState extends State<ProfileScreenBody> {
     });
 
     try {
+      // Check username uniqueness
+      final username = _usernameController.text.trim();
+      if (username.isNotEmpty) {
+        final existingUser = await Supabase.instance.client
+          .from('profiles')
+          .select('id')
+          .eq('username', username)
+          .neq('id', user.id)
+          .maybeSingle();
+        if (existingUser != null) {
+          setState(() {
+            _errorMessage = 'Username already taken. Please choose a different one.';
+          });
+          return;
+        }
+      }
+
       // Save profile settings
       await Supabase.instance.client
         .from('profiles')
-        .upsert({'id': user.id, 'username': _usernameController.text.trim(), 'public_profile': _publicProfile});
+        .upsert({'id': user.id, 'username': username, 'public_profile': _publicProfile});
 
       // Delete existing distro history
       await Supabase.instance.client.from('distro_history').delete().eq('user_id', user.id);
@@ -246,6 +269,95 @@ class _ProfileScreenBodyState extends State<ProfileScreenBody> {
       setState(() {
         _isLoading = false;
       });
+    }
+  }
+
+  void _exportAsJson() async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) return;
+
+    try {
+      final historyResponse = await Supabase.instance.client
+          .from('distro_history')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('start_date');
+
+      final jsonData = jsonEncode(historyResponse);
+
+      if (kIsWeb) {
+        final bytes = utf8.encode(jsonData);
+        final blob = html.Blob([bytes]);
+        final url = html.Url.createObjectUrlFromBlob(blob);
+        final anchor = html.AnchorElement(href: url)
+          ..setAttribute('download', 'distro_history.json')
+          ..click();
+        html.Url.revokeObjectUrl(url);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('JSON file downloaded!')),
+        );
+      } else {
+        final directory = await getTemporaryDirectory();
+        final file = File('${directory.path}/distro_history.json');
+        await file.writeAsString(jsonData);
+        await Share.shareXFiles([XFile(file.path)], text: 'Distro History JSON');
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('JSON file shared!')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to export JSON.')),
+      );
+    }
+  }
+
+  void _exportAsCsv() async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) return;
+
+    try {
+      final historyResponse = await Supabase.instance.client
+          .from('distro_history')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('start_date');
+
+      final csvHeader = 'distro_name,start_date,end_date,current_flag\n';
+      final csvRows = historyResponse.map((item) {
+        final distro = item['distro_name'];
+        final start = item['start_date'];
+        final end = item['end_date'] ?? '';
+        final current = item['current_flag'];
+        return '$distro,$start,$end,$current';
+      }).join('\n');
+
+      final csvData = csvHeader + csvRows;
+
+      if (kIsWeb) {
+        final bytes = utf8.encode(csvData);
+        final blob = html.Blob([bytes]);
+        final url = html.Url.createObjectUrlFromBlob(blob);
+        final anchor = html.AnchorElement(href: url)
+          ..setAttribute('download', 'distro_history.csv')
+          ..click();
+        html.Url.revokeObjectUrl(url);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('CSV file downloaded!')),
+        );
+      } else {
+        final directory = await getTemporaryDirectory();
+        final file = File('${directory.path}/distro_history.csv');
+        await file.writeAsString(csvData);
+        await Share.shareXFiles([XFile(file.path)], text: 'Distro History CSV');
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('CSV file shared!')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to export CSV.')),
+      );
     }
   }
 
@@ -516,6 +628,34 @@ class _ProfileScreenBodyState extends State<ProfileScreenBody> {
                   label: const Text('Save Profile'),
                 ),
               ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _exportAsJson,
+                    icon: const Icon(Icons.file_download),
+                    label: const Text('Export JSON'),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: Colors.green),
+                      foregroundColor: Colors.green,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _exportAsCsv,
+                    icon: const Icon(Icons.file_download),
+                    label: const Text('Export CSV'),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: Colors.green),
+                      foregroundColor: Colors.green,
+                    ),
+                  ),
+                ),
+              ],
+            ),
             const SizedBox(height: 16),
           ],
         ),
