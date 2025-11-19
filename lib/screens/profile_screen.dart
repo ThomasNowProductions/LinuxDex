@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:convert';
+import 'dart:async';
 import 'package:share_plus/share_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
@@ -21,17 +22,25 @@ class _ProfileScreenBodyState extends State<ProfileScreenBody> {
   bool _publicProfile = false;
 
   bool _isLoading = false;
+  bool _isAutoSaving = false;
   String? _errorMessage;
+  Timer? _autoSaveTimer;
 
   @override
   void initState() {
     super.initState();
     _loadProfile();
+    
+    // Add listener to username controller for auto-save
+    _usernameController.addListener(() {
+      _scheduleAutoSave();
+    });
   }
 
   @override
   void dispose() {
     _usernameController.dispose();
+    _autoSaveTimer?.cancel();
     super.dispose();
   }
 
@@ -78,6 +87,56 @@ class _ProfileScreenBodyState extends State<ProfileScreenBody> {
     }
   }
 
+  void _scheduleAutoSave() {
+    // Cancel existing timer
+    _autoSaveTimer?.cancel();
+    
+    // Start new timer for auto-save after 2 seconds of inactivity
+    _autoSaveTimer = Timer(const Duration(seconds: 2), () {
+      _autoSaveProfile();
+    });
+  }
+
+  Future<void> _autoSaveProfile() async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) return;
+
+    setState(() {
+      _isAutoSaving = true;
+    });
+
+    try {
+      // Check username uniqueness
+      final username = _usernameController.text.trim();
+      if (username.isNotEmpty) {
+        final existingUser = await Supabase.instance.client
+          .from('profiles')
+          .select('id')
+          .eq('username', username)
+          .neq('id', user.id)
+          .maybeSingle();
+        if (existingUser != null) {
+          // Don't save if username is taken
+          return;
+        }
+      }
+
+      // Save profile settings
+      await Supabase.instance.client
+        .from('profiles')
+        .upsert({'id': user.id, 'username': username, 'public_profile': _publicProfile});
+
+    } catch (e) {
+      // Silently fail for auto-save
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isAutoSaving = false;
+        });
+      }
+    }
+  }
+
   void _showAddDistroDialog() {
     showDialog(
       context: context,
@@ -103,16 +162,33 @@ class _ProfileScreenBodyState extends State<ProfileScreenBody> {
       
       // Find current distro and update its end date and current flag
       final currentDistroIndex = _distroHistory.indexWhere((distro) => distro['current_flag'] == true);
+      final bool hasCurrentDistro = currentDistroIndex != -1;
       
-      if (currentDistroIndex != -1) {
+      if (hasCurrentDistro) {
         final currentDistro = _distroHistory[currentDistroIndex];
-        await Supabase.instance.client
-            .from('distro_history')
-            .update({
-              'end_date': currentDate.toIso8601String().split('T')[0],
-              'current_flag': false,
-            })
-            .eq('id', currentDistro['id']);
+        try {
+          final updateResult = await Supabase.instance.client
+              .from('distro_history')
+              .update({
+                'end_date': currentDate.toIso8601String().split('T')[0],
+                'current_flag': false,
+              })
+              .eq('id', currentDistro['id']);
+          
+          if (updateResult.isEmpty) {
+            // Log warning but continue - this might happen if record was already updated
+            debugPrint('Warning: Could not update current distro (might be already updated)');
+          }
+        } catch (updateError) {
+          debugPrint('Error updating current distro: $updateError');
+          // Continue anyway - we still want to add the new distro
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Warning: Could not update previous distro end date, but new distro will be added.'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
       }
 
       // Add new current distro
@@ -130,59 +206,26 @@ class _ProfileScreenBodyState extends State<ProfileScreenBody> {
       if (mounted) {
         Navigator.of(context).pop(); // Close dialog
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Distro switched successfully!')),
+          SnackBar(
+            content: Text(hasCurrentDistro 
+              ? 'Distro switched successfully!' 
+              : 'First distro added successfully!'),
+          ),
         );
       }
     } catch (e) {
       setState(() {
         _errorMessage = 'Failed to add new distro. Please try again.';
       });
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
-    }
-  }
-
-  Future<void> _saveProfile() async {
-    final user = Supabase.instance.client.auth.currentUser;
-    if (user == null) return;
-
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
-
-    try {
-      // Check username uniqueness
-      final username = _usernameController.text.trim();
-      if (username.isNotEmpty) {
-        final existingUser = await Supabase.instance.client
-          .from('profiles')
-          .select('id')
-          .eq('username', username)
-          .neq('id', user.id)
-          .maybeSingle();
-        if (existingUser != null) {
-          setState(() {
-            _errorMessage = 'Username already taken. Please choose a different one.';
-          });
-          return;
-        }
-      }
-
-      // Save profile settings
-      await Supabase.instance.client
-        .from('profiles')
-        .upsert({'id': user.id, 'username': username, 'public_profile': _publicProfile});
-
+      
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Profile saved!')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString().replaceAll('Exception:', '').trim()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
-    } catch (e) {
-      setState(() {
-        _errorMessage = 'Failed to save profile. Please try again.';
-      });
     } finally {
       setState(() {
         _isLoading = false;
@@ -291,180 +334,323 @@ class _ProfileScreenBodyState extends State<ProfileScreenBody> {
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: SingleChildScrollView(
-        child: Column(
+  void _showDeleteAccountDialog() {
+    Navigator.of(context).pop(); // Close the settings bottom sheet
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.grey[900],
+        title: const Text(
+          'Delete Account',
+          style: TextStyle(color: Colors.red),
+        ),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (Supabase.instance.client.auth.currentUser != null)
+            Text(
+              'Account deletion is a permanent action that cannot be undone.',
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 16),
+            Text(
+              'To delete your account, please email:',
+              style: TextStyle(color: Colors.white),
+            ),
+            SizedBox(height: 8),
+            Text(
+              'thomasnowprod@proton.me',
+              style: TextStyle(
+                color: Colors.green,
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
+            ),
+            SizedBox(height: 16),
+            Text(
+              'Please include:\n'
+              '• Your registered email address\n'
+              '• Subject: "Account Deletion Request"\n'
+              '• Confirmation that you want to delete your account',
+              style: TextStyle(color: Colors.white70, fontSize: 14),
+            ),
+            SizedBox(height: 16),
+            Text(
+              'Note: You will receive a confirmation email before the deletion is processed.',
+              style: TextStyle(color: Colors.orange, fontSize: 12),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Please check your email app to send the deletion request.'),
+                  backgroundColor: Colors.blue,
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Open Email'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showSettingsBottomSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.grey[900],
+      isScrollControlled: true,
+      builder: (context) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Drag handle
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[600],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 16),
+              
+              // Username Section
+              Card(
+                color: Colors.black,
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.person, color: Colors.green),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Username',
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: _usernameController,
+                        decoration: const InputDecoration(
+                          labelText: 'Choose a unique username',
+                          prefixIcon: Icon(Icons.account_circle),
+                          helperText: 'This will be used for others to find your profile',
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              
+              // Profile Settings Section
+              Card(
+                color: Colors.black,
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.settings, color: Colors.green),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Profile Settings',
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      SwitchListTile(
+                        title: const Text('Make profile public'),
+                        subtitle: const Text('Allow others to view your distro history'),
+                        value: _publicProfile,
+                        onChanged: (value) {
+                          setState(() => _publicProfile = value);
+                          _scheduleAutoSave();
+                        },
+                        activeColor: Colors.green,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              
+              // Export and Action Buttons
               Row(
-                mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  IconButton(
-                    icon: const Icon(Icons.logout),
-                    onPressed: () => Supabase.instance.client.auth.signOut(),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _exportAsJson,
+                      icon: const Icon(Icons.file_download),
+                      label: const Text('Export JSON'),
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: Colors.green),
+                        foregroundColor: Colors.green,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _exportAsCsv,
+                      icon: const Icon(Icons.file_download),
+                      label: const Text('Export CSV'),
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: Colors.green),
+                        foregroundColor: Colors.green,
+                      ),
+                    ),
                   ),
                 ],
               ),
-            Card(
-              color: Colors.black,
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        const Icon(Icons.settings, color: Colors.green),
-                        const SizedBox(width: 8),
-                        Text('Profile Settings', style: Theme.of(context).textTheme.titleLarge),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    SwitchListTile(
-                      title: const Text('Make profile public'),
-                      subtitle: const Text('Allow others to view your distro history'),
-                      value: _publicProfile,
-                      onChanged: (value) => setState(() => _publicProfile = value),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-            Card(
-              color: Colors.black,
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        const Icon(Icons.person, color: Colors.green),
-                        const SizedBox(width: 8),
-                        Text('Username', style: Theme.of(context).textTheme.titleLarge),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    TextField(
-                      controller: _usernameController,
-                      decoration: const InputDecoration(
-                        labelText: 'Choose a unique username',
-                        prefixIcon: Icon(Icons.account_circle),
-                        helperText: 'This will be used for others to find your profile',
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-            Card(
-              color: Colors.black,
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        const Icon(Icons.computer, color: Colors.green),
-                        const SizedBox(width: 8),
-                        Text('Linux Distributions', style: Theme.of(context).textTheme.titleLarge),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    // Current Distro at the top
-                    if (_distroHistory.any((distro) => distro['current_flag'] == true)) ...[
-                      _buildCurrentDistroItem(
-                        _distroHistory.firstWhere((distro) => distro['current_flag'] == true)
-                      ),
-                      const SizedBox(height: 8),
-                    ],
-                    // Previous Distros
-                    if (_distroHistory.any((distro) => distro['current_flag'] == false)) ...[
-                      Text(
-                        'Previous Distributions',
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                      const SizedBox(height: 8),
-                      ..._distroHistory
-                          .where((distro) => distro['current_flag'] == false)
-                          .map((distro) => _buildPreviousDistroItem(distro)),
-                      const SizedBox(height: 16),
-                    ],
-                    // Add New Distro Button
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton.icon(
-                        onPressed: _isLoading ? null : _showAddDistroDialog,
-                        icon: const Icon(Icons.add),
-                        label: const Text('Add New Distro'),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-            if (_errorMessage != null)
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.red.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.zero,
-                ),
-                child: Text(
-                  _errorMessage!,
-                  style: const TextStyle(color: Colors.red),
-                ),
-              ),
-            const SizedBox(height: 16),
-            if (_isLoading)
-              const Center(child: CircularProgressIndicator())
-            else
+              const SizedBox(height: 16),
+              
+              // Account Actions
+              
+              // Logout Button
               SizedBox(
                 width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: _saveProfile,
-                  icon: const Icon(Icons.save),
-                  label: const Text('Save Profile'),
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    Supabase.instance.client.auth.signOut();
+                  },
+                  icon: const Icon(Icons.logout, color: Colors.red),
+                  label: const Text('Logout', style: TextStyle(color: Colors.red)),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: Colors.red),
+                    foregroundColor: Colors.red,
+                  ),
                 ),
               ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: _exportAsJson,
-                    icon: const Icon(Icons.file_download),
-                    label: const Text('Export JSON'),
-                    style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: Colors.green),
-                      foregroundColor: Colors.green,
-                    ),
+              const SizedBox(height: 8),
+              
+              // Delete Account Button
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: _showDeleteAccountDialog,
+                  icon: const Icon(Icons.delete_forever, color: Colors.red),
+                  label: const Text('Delete Account', style: TextStyle(color: Colors.red)),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: Colors.red),
+                    foregroundColor: Colors.red,
                   ),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: _exportAsCsv,
-                    icon: const Icon(Icons.file_download),
-                    label: const Text('Export CSV'),
-                    style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: Colors.green),
-                      foregroundColor: Colors.green,
-                    ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.grey[900],
+      floatingActionButton: FloatingActionButton(
+        onPressed: _showSettingsBottomSheet,
+        backgroundColor: Colors.green,
+        child: const Icon(Icons.settings, color: Colors.black),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Card(
+                color: Colors.black,
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.computer, color: Colors.green),
+                          const SizedBox(width: 8),
+                          Text('Linux Distributions', style: Theme.of(context).textTheme.titleLarge),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      // Current Distro at the top
+                      if (_distroHistory.any((distro) => distro['current_flag'] == true)) ...[
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          child: _buildCurrentDistroItem(
+                            _distroHistory.firstWhere((distro) => distro['current_flag'] == true)
+                          ),
+                        ),
+                      ],
+                      // Previous Distros
+                      if (_distroHistory.any((distro) => distro['current_flag'] == false)) ...[
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          child: Text(
+                            'Previous Distributions',
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                        ),
+                        ..._distroHistory
+                            .where((distro) => distro['current_flag'] == false)
+                            .map((distro) => Padding(
+                                  padding: const EdgeInsets.symmetric(vertical: 8),
+                                  child: _buildPreviousDistroItem(distro),
+                                )),
+                        const SizedBox(height: 16),
+                      ],
+                      // Add New Distro Button
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: _isLoading ? null : _showAddDistroDialog,
+                          icon: const Icon(Icons.add),
+                          label: const Text('Add New Distro'),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 16),
-          ],
+              ),
+              const SizedBox(height: 24),
+              if (_errorMessage != null)
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.red.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.zero,
+                  ),
+                  child: Text(
+                    _errorMessage!,
+                    style: const TextStyle(color: Colors.red),
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );
@@ -472,6 +658,7 @@ class _ProfileScreenBodyState extends State<ProfileScreenBody> {
 
   Widget _buildCurrentDistroItem(Map<String, dynamic> distro) {
     return Container(
+      width: double.infinity,
       decoration: BoxDecoration(
         color: Colors.green.withValues(alpha: 0.1),
         border: Border.all(color: Colors.green),
@@ -479,39 +666,39 @@ class _ProfileScreenBodyState extends State<ProfileScreenBody> {
       ),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Icon(Icons.radio_button_checked, color: Colors.green),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    distro['distro_name'],
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Started: ${distro['start_date'].toLocal().toString().split(' ')[0]}',
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.7),
-                      fontSize: 14,
-                    ),
-                  ),
-                ],
+            Text(
+              distro['distro_name'],
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
               ),
             ),
-            const Text(
-              'CURRENT',
+            const SizedBox(height: 8),
+            Text(
+              'Started: ${distro['start_date'].toLocal().toString().split(' ')[0]}',
               style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.7),
+                fontSize: 14,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
                 color: Colors.green,
-                fontWeight: FontWeight.bold,
-                fontSize: 12,
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: const Text(
+                'CURRENT',
+                style: TextStyle(
+                  color: Colors.black,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                ),
               ),
             ),
           ],
@@ -522,37 +709,30 @@ class _ProfileScreenBodyState extends State<ProfileScreenBody> {
 
   Widget _buildPreviousDistroItem(Map<String, dynamic> distro) {
     return Container(
+      width: double.infinity,
       decoration: BoxDecoration(
         color: Colors.grey[850],
         borderRadius: BorderRadius.circular(8),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Icon(Icons.radio_button_unchecked, color: Colors.grey),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    distro['distro_name'],
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '${distro['start_date'].toLocal().toString().split(' ')[0]} - ${distro['end_date']?.toLocal().toString().split(' ')[0] ?? 'Present'}',
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.7),
-                      fontSize: 14,
-                    ),
-                  ),
-                ],
+            Text(
+              distro['distro_name'],
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '${distro['start_date'].toLocal().toString().split(' ')[0]} - ${distro['end_date']?.toLocal().toString().split(' ')[0] ?? 'Present'}',
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.7),
+                fontSize: 14,
               ),
             ),
           ],
