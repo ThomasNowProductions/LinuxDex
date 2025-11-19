@@ -22,7 +22,6 @@ class _ProfileScreenBodyState extends State<ProfileScreenBody> {
   bool _publicProfile = false;
 
   bool _isLoading = false;
-  bool _isAutoSaving = false;
   String? _errorMessage;
   Timer? _autoSaveTimer;
 
@@ -102,7 +101,6 @@ class _ProfileScreenBodyState extends State<ProfileScreenBody> {
     if (user == null) return;
 
     setState(() {
-      _isAutoSaving = true;
     });
 
     try {
@@ -131,7 +129,6 @@ class _ProfileScreenBodyState extends State<ProfileScreenBody> {
     } finally {
       if (mounted) {
         setState(() {
-          _isAutoSaving = false;
         });
       }
     }
@@ -182,12 +179,14 @@ class _ProfileScreenBodyState extends State<ProfileScreenBody> {
         } catch (updateError) {
           debugPrint('Error updating current distro: $updateError');
           // Continue anyway - we still want to add the new distro
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Warning: Could not update previous distro end date, but new distro will be added.'),
-              backgroundColor: Colors.orange,
-            ),
-          );
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Warning: Could not update previous distro end date, but new distro will be added.'),
+                backgroundColor: Colors.orange,
+              ),
+            );
+          }
         }
       }
 
