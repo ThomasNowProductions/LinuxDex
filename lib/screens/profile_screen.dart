@@ -489,7 +489,7 @@ class _ProfileScreenBodyState extends State<ProfileScreenBody> {
                           setState(() => _publicProfile = value);
                           _scheduleAutoSave();
                         },
-                        activeColor: Colors.green,
+                        activeThumbColor: Colors.green,
                       ),
                     ],
                   ),
