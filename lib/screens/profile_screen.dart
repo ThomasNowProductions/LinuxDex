@@ -259,8 +259,10 @@ class _ProfileScreenBodyState extends State<ProfileScreenBody> {
         await Supabase.instance.client.from('distro_history').insert(inserts);
       }
 
-      // Navigate to view or something, but for now, show success
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Profile saved!')));
+      // Show success message using mounted check
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Profile saved!')));
+      }
     } catch (e) {
       setState(() {
         _errorMessage = 'Failed to save profile. Please try again.';
@@ -289,26 +291,32 @@ class _ProfileScreenBodyState extends State<ProfileScreenBody> {
         final bytes = utf8.encode(jsonData);
         final blob = html.Blob([bytes]);
         final url = html.Url.createObjectUrlFromBlob(blob);
-        final anchor = html.AnchorElement(href: url)
+        html.AnchorElement(href: url)
           ..setAttribute('download', 'distro_history.json')
           ..click();
         html.Url.revokeObjectUrl(url);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('JSON file downloaded!')),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('JSON file downloaded!')),
+          );
+        }
       } else {
         final directory = await getTemporaryDirectory();
         final file = File('${directory.path}/distro_history.json');
         await file.writeAsString(jsonData);
         await Share.shareXFiles([XFile(file.path)], text: 'Distro History JSON');
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('JSON file shared!')),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('JSON file shared!')),
+          );
+        }
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to export JSON.')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to export JSON.')),
+        );
+      }
     }
   }
 
@@ -338,26 +346,32 @@ class _ProfileScreenBodyState extends State<ProfileScreenBody> {
         final bytes = utf8.encode(csvData);
         final blob = html.Blob([bytes]);
         final url = html.Url.createObjectUrlFromBlob(blob);
-        final anchor = html.AnchorElement(href: url)
+        html.AnchorElement(href: url)
           ..setAttribute('download', 'distro_history.csv')
           ..click();
         html.Url.revokeObjectUrl(url);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('CSV file downloaded!')),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('CSV file downloaded!')),
+          );
+        }
       } else {
         final directory = await getTemporaryDirectory();
         final file = File('${directory.path}/distro_history.csv');
         await file.writeAsString(csvData);
         await Share.shareXFiles([XFile(file.path)], text: 'Distro History CSV');
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('CSV file shared!')),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('CSV file shared!')),
+          );
+        }
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to export CSV.')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to export CSV.')),
+        );
+      }
     }
   }
 
@@ -608,7 +622,7 @@ class _ProfileScreenBodyState extends State<ProfileScreenBody> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.red.withOpacity(0.1),
+                  color: Colors.red.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.zero,
                 ),
                 child: Text(

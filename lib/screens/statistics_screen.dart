@@ -11,10 +11,7 @@ class StatisticsBody extends StatefulWidget {
 
 class _StatisticsBodyState extends State<StatisticsBody> {
   List<Map<String, dynamic>> _popularDistros = [];
--------
--------
   double _averageSwitchFrequency = 0.0;
-  final double _averageTimeOnDistro = 0.0;
   Map<String, double> _averageLengths = {};
   Map<String, int> _activeUsers = {};
   int _totalUsers = 0;
