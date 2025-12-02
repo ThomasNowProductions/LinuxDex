@@ -25,3 +25,7 @@ Thumbs.db
 # Temporary files
 *.tmp
 *.temp
+
+# Android keystore files
+*.jks
+key.properties
